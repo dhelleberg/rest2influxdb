@@ -36,53 +36,22 @@ echo "8h:   $eighthoursago"
 resturl="http://$openhabserver:$openhabport/rest/persistence/items/$itemname?serviceId=$serviceid"
 
 # get values and write to different files
-curl -G -X GET --header "Accept: application/json" --data-urlencode "starttime=${tenyearsago}" --data-urlencode "endtime=${oneyearago}" "$resturl"  > ${itemname}_10y.xml
-curl -G -X GET --header "Accept: application/json" --data-urlencode "starttime=${oneyearago}" --data-urlencode "endtime=${onemonthago}" "$resturl"  > ${itemname}_1y.xml
-curl -G -X GET --header "Accept: application/json" --data-urlencode "starttime=${onemonthago}" --data-urlencode "endtime=${oneweekago}" "$resturl"  > ${itemname}_1m.xml
-curl -G -X GET --header "Accept: application/json" --data-urlencode "starttime=${oneweekago}" --data-urlencode "endtime=${onedayago}" "$resturl"    > ${itemname}_1w.xml
-curl -G -X GET --header "Accept: application/json"  --data-urlencode "starttime=${onedayago}" --data-urlencode "endtime=${eighthoursago}" "$resturl" > ${itemname}_1d.xml
-curl -G -X GET --header "Accept: application/json"  --data-urlencode "starttime=${eighthoursago}" "$resturl" > ${itemname}_8h.xml
-
-# combine files
-cat ${itemname}_10y.xml ${itemname}_1y.xml ${itemname}_1m.xml ${itemname}_1w.xml ${itemname}_1d.xml ${itemname}_8h.xml > ${itemname}.xml
-
-# convert data to line protocol file
-cat ${itemname}.xml \
-     | grep -e "time" -e "state" \
-     | paste - - \
-     | tr -d ',"' \
-     | awk -v item="$itemname" '{print item " value=" $4 " " $2 "000000"}' \
-     | sed 's/value=ON/value=1/g;s/value=OFF/value=0/g' \
-     > ${itemname}.txt
-
-values=`wc -l ${itemname}.txt | cut -d " " -f 1`
-echo ""
-echo "### found values: $values"
+curl -G -X GET --header "Accept: application/json" --data-urlencode "starttime=${tenyearsago}" "$resturl"  > ${itemname}_10y.json
 
 
-# split file in smaller parts to make it easier for influxdb
+echo "converting"
 
-linestart=1
-linestop=$importsize
-
-until [ $linestart -gt $values ]; do
-  echo ""
-  echo "### Line from $linestart to $linestop"
-  linestart=$((linestart+importsize))
-  linestop=$((linestop+importsize))
-  cat ${itemname}.txt | sed -n "${linestart},${linestop}p" > ${itemname}_${linestart}.txt
+node convertJson2influx.js $itemname
 
   # print import command
 #  echo "curl -i -XPOST -u $influxuser:$influxpw 'http://$influxserver:$influxport/write?db=$influxdatbase' --data-binary @${itemname}_${linestart}.txt"
   # execute import command
-  #curl -i -XPOST -u $influxuser:$influxpw "http://$influxserver:$influxport/write?db=$influxdatbase" --data-binary @${itemname}_${linestart}.txt
+  echo "curl -i -XPOST -u $influxuser:$influxpw "http://$influxserver:$influxport/write?db=$influxdatbase" --data-binary @${itemname}.json "
 
-  echo "Sleep for $sleeptime seconds to let InfluxDB process the data..."
-  sleep $sleeptime
 done
 
 echo ""
 echo "### delete temporary files"
-rm ${itemname}*
+#irm ${itemname}*
 
 exit 0
