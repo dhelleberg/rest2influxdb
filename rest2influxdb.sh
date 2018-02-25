@@ -36,12 +36,12 @@ echo "8h:   $eighthoursago"
 resturl="http://$openhabserver:$openhabport/rest/persistence/items/$itemname?serviceId=$serviceid"
 
 # get values and write to different files
-curl -X GET --header "Accept: application/json" "$resturl&starttime=${tenyearsago}&endtime=${oneyearago}"  > ${itemname}_10y.xml
-curl -X GET --header "Accept: application/json" "$resturl&starttime=${oneyearago}&endtime=${onemonthago}"  > ${itemname}_1y.xml
-curl -X GET --header "Accept: application/json" "$resturl&starttime=${onemonthago}&endtime=${oneweekago}"  > ${itemname}_1m.xml
-curl -X GET --header "Accept: application/json" "$resturl&starttime=${oneweekago}&endtime=${onwdayago}"    > ${itemname}_1w.xml
-curl -X GET --header "Accept: application/json" "$resturl&starttime=${onedayago}&endtime=${eighthoursago}" > ${itemname}_1d.xml
-curl -X GET --header "Accept: application/json" "$resturl&starttime=${eighthoursago}"                      > ${itemname}_8h.xml
+curl -G -X GET --header "Accept: application/json" --data-urlencode "starttime=${tenyearsago}" --data-urlencode "endtime=${oneyearago}" "$resturl"  > ${itemname}_10y.xml
+curl -G -X GET --header "Accept: application/json" --data-urlencode "starttime=${oneyearago}" --data-urlencode "endtime=${onemonthago}" "$resturl"  > ${itemname}_1y.xml
+curl -G -X GET --header "Accept: application/json" --data-urlencode "starttime=${onemonthago}" --data-urlencode "endtime=${oneweekago}" "$resturl"  > ${itemname}_1m.xml
+curl -G -X GET --header "Accept: application/json" --data-urlencode "starttime=${oneweekago}" --data-urlencode "endtime=${onedayago}" "$resturl"    > ${itemname}_1w.xml
+curl -G -X GET --header "Accept: application/json"  --data-urlencode "starttime=${onedayago}" --data-urlencode "endtime=${eighthoursago}" "$resturl" > ${itemname}_1d.xml
+curl -G -X GET --header "Accept: application/json"  --data-urlencode "starttime=${eighthoursago}" "$resturl" > ${itemname}_8h.xml
 
 # combine files
 cat ${itemname}_10y.xml ${itemname}_1y.xml ${itemname}_1m.xml ${itemname}_1w.xml ${itemname}_1d.xml ${itemname}_8h.xml > ${itemname}.xml
@@ -75,7 +75,7 @@ until [ $linestart -gt $values ]; do
   # print import command
 #  echo "curl -i -XPOST -u $influxuser:$influxpw 'http://$influxserver:$influxport/write?db=$influxdatbase' --data-binary @${itemname}_${linestart}.txt"
   # execute import command
-  curl -i -XPOST -u $influxuser:$influxpw "http://$influxserver:$influxport/write?db=$influxdatbase" --data-binary @${itemname}_${linestart}.txt
+  #curl -i -XPOST -u $influxuser:$influxpw "http://$influxserver:$influxport/write?db=$influxdatbase" --data-binary @${itemname}_${linestart}.txt
 
   echo "Sleep for $sleeptime seconds to let InfluxDB process the data..."
   sleep $sleeptime
